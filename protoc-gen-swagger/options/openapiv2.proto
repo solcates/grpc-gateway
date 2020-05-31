@@ -125,6 +125,8 @@ message Operation {
   // security declaration, an empty array can be used.
   repeated SecurityRequirement security = 12;
   map<string, google.protobuf.Value> extensions = 13;
+  // customheaders allows you to add headers to this operation
+  map<string, google.protobuf.Value> customheaders = 14;
 }
 
 // `Response` is a representation of OpenAPI v2 specification's Response object.
@@ -330,6 +332,7 @@ message JSONSchema {
   // OpenAPI v2:
   // anyOf, oneOf, not
   reserved 43 to 45;
+
 }
 
 // `Tag` is a representation of OpenAPI v2 specification's Tag object.
@@ -351,6 +354,9 @@ message Tag {
   string description = 2;
   // Additional external documentation for this tag.
   ExternalDocumentation external_docs = 3;
+  // customheaders allows you to add custom headers to this operation, in key=type i.e. hello=string
+  // this is helpful for passing in canary parameters to the openapi generators
+  map<string, string> customheaders = 4;
 }
 
 // `SecurityDefinitions` is a representation of OpenAPI v2 specification's

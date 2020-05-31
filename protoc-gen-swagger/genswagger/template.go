@@ -19,6 +19,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	pbdescriptor "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+
 	"github.com/grpc-ecosystem/grpc-gateway/internal/casing"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
 	swagger_options "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
@@ -122,7 +123,7 @@ func messageToQueryParameters(message *descriptor.Message, reg *descriptor.Regis
 
 // queryParams converts a field to a list of swagger query parameters recursively through the use of nestedQueryParams.
 func queryParams(message *descriptor.Message, field *descriptor.Field, prefix string, reg *descriptor.Registry, pathParams []descriptor.Parameter) (params []swaggerParameterObject, err error) {
-    return nestedQueryParams(message, field, prefix, reg, pathParams, map[string]bool{})
+	return nestedQueryParams(message, field, prefix, reg, pathParams, map[string]bool{})
 }
 
 // nestedQueryParams converts a field to a list of swagger query parameters recursively.
@@ -226,13 +227,13 @@ func nestedQueryParams(message *descriptor.Message, field *descriptor.Field, pre
 	if err != nil {
 		return nil, fmt.Errorf("unknown message type %s", fieldType)
 	}
-        // Check for cyclical message reference:
-        isCycle := touched[*msg.Name]
-        if isCycle {
-            return nil, fmt.Errorf("Recursive types are not allowed for query parameters, cycle found on %q", fieldType)
-        }
-        // Update map with the massage name so a cycle further down the recursive path can be detected. 
-        touched[*msg.Name] = true
+	// Check for cyclical message reference:
+	isCycle := touched[*msg.Name]
+	if isCycle {
+		return nil, fmt.Errorf("Recursive types are not allowed for query parameters, cycle found on %q", fieldType)
+	}
+	// Update map with the massage name so a cycle further down the recursive path can be detected.
+	touched[*msg.Name] = true
 
 	for _, nestedField := range msg.Fields {
 		var fieldName string
@@ -1092,6 +1093,13 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 						}
 						operationObject.extensions = exts
 					}
+					if opts.Customheaders != nil {
+						ch, err := processCustomHeaders(opts.Customheaders)
+						if err != nil {
+							return err
+						}
+						operationObject.customHeaders = ch
+					}
 
 					if len(opts.Produces) > 0 {
 						operationObject.Produces = make([]string, len(opts.Produces))
@@ -1125,6 +1133,23 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 
 	// Success! return nil on the error object
 	return nil
+}
+
+func processCustomHeaders(customheaders map[string]*structpb.Value) ([]customHeader, error) {
+
+	// if no custom headers, then we return nil for the generator
+	if len(customheaders) == 0 {
+		return nil, nil
+	}
+	ch := []customHeader{}
+	for key, value := range customheaders {
+		ch = append(ch, customHeader{
+			key:   key,
+			value: value.GetStringValue(),
+		})
+	}
+
+	return ch, nil
 }
 
 // This function is called with a param which contains the entire definition of a method.

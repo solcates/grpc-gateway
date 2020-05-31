@@ -53,6 +53,10 @@ type extension struct {
 	key   string
 	value json.RawMessage
 }
+type customHeader struct {
+	key   string
+	value string
+}
 
 // http://swagger.io/specification/#swaggerObject
 type swaggerObject struct {
@@ -118,10 +122,10 @@ type swaggerOperationObject struct {
 	Deprecated  bool                    `json:"deprecated,omitempty"`
 	Produces    []string                `json:"produces,omitempty"`
 
-	Security     *[]swaggerSecurityRequirementObject `json:"security,omitempty"`
-	ExternalDocs *swaggerExternalDocumentationObject `json:"externalDocs,omitempty"`
-
-	extensions []extension
+	Security      *[]swaggerSecurityRequirementObject `json:"security,omitempty"`
+	ExternalDocs  *swaggerExternalDocumentationObject `json:"externalDocs,omitempty"`
+	customHeaders []customHeader
+	extensions    []extension
 }
 
 type swaggerParametersObject []swaggerParameterObject

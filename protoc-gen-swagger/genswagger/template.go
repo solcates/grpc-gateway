@@ -753,10 +753,17 @@ func isResourceName(prefix string) bool {
 func renderServices(services []*descriptor.Service, paths swaggerPathsObject, reg *descriptor.Registry, requestResponseRefs, customRefs refMap, msgs []*descriptor.Message) error {
 	// Correctness of svcIdx and methIdx depends on 'services' containing the services in the same order as the 'file.Service' array.
 	for svcIdx, svc := range services {
+		// look for customheaders to pass to our child methods
+		svcOpts, err := extractTagOptionFromMethodDescriptor(svc.ServiceDescriptorProto)
+		if err != nil {
+			return err
+		}
+
 		for methIdx, meth := range svc.Methods {
 			for bIdx, b := range meth.Bindings {
 				// Iterate over all the swagger parameters
 				parameters := swaggerParametersObject{}
+				// Process the path Params first
 				for _, parameter := range b.PathParams {
 
 					var paramType, paramFormat, desc, collectionFormat, defaultValue string
@@ -841,6 +848,19 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 						CollectionFormat: collectionFormat,
 						MinItems:         minItems,
 					})
+				}
+				// Now lets add the custom headers before the last payload
+				if svcOpts != nil {
+					if svcOpts.Customheaders != nil {
+						for key, valType := range svcOpts.Customheaders{
+							parameters = append(parameters, swaggerParameterObject{
+								Name:             key,
+								In:               "header",
+								Required:         false, // as it's a custom header, it's expected the application business logic will handle this
+								Type:             valType,
+							})
+						}
+					}
 				}
 				// Now check if there is a body parameter
 				if b.Body != nil {
@@ -1767,6 +1787,26 @@ func extractSchemaOptionFromMessageDescriptor(msg *pbdescriptor.DescriptorProto)
 	opts, ok := ext.(*swagger_options.Schema)
 	if !ok {
 		return nil, fmt.Errorf("extension is %T; want a Schema", ext)
+	}
+	return opts, nil
+}
+
+// extractOperationOptionFromMethodDescriptor extracts the message of type
+// swagger_options.Operation from a given proto method's descriptor.
+func extractTagOptionFromMethodDescriptor(meth *pbdescriptor.ServiceDescriptorProto) (*swagger_options.Tag, error) {
+	if meth.Options == nil {
+		return nil, nil
+	}
+	if !proto.HasExtension(meth.Options, swagger_options.E_Openapiv2Tag) {
+		return nil, nil
+	}
+	ext, err := proto.GetExtension(meth.Options, swagger_options.E_Openapiv2Tag)
+	if err != nil {
+		return nil, err
+	}
+	opts, ok := ext.(*swagger_options.Tag)
+	if !ok {
+		return nil, fmt.Errorf("extension is %T; want an Operation", ext)
 	}
 	return opts, nil
 }
